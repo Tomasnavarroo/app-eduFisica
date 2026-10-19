@@ -1,0 +1,1805 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduFísica Inventory - Gestión de Inventario Deportivo</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d',
+                        },
+                        sport: {
+                            blue: '#0284c7',
+                            orange: '#f97316',
+                            yellow: '#eab308',
+                            red: '#ef4444'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js para estadísticas -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- QRCode.js para generación de códigos QR -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- Html5-QRCode para escáner -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .tab-active {
+            border-bottom: 3px solid #16a34a;
+            color: #16a34a;
+            font-weight: 600;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            body { background: white !important; }
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col text-slate-800 antialiased selection:bg-brand-500 selection:text-white">
+
+    <!-- TOP HEADER -->
+    <header class="bg-slate-900 text-white sticky top-0 z-30 shadow-md no-print">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Logo & Name -->
+                <div class="flex items-center space-x-3">
+                    <div class="bg-brand-500 text-white p-2.5 rounded-xl shadow-lg flex items-center justify-center">
+                        <i class="fa-solid fa-volleyball text-xl animate-spin-slow"></i>
+                    </div>
+                    <div>
+                        <span class="text-xl font-black tracking-tight text-white flex items-center gap-1.5">
+                            EduFísica <span class="text-brand-500 font-bold text-sm bg-brand-500/20 px-2 py-0.5 rounded-full border border-brand-500/30">PRO</span>
+                        </span>
+                        <p class="text-xs text-slate-400 font-medium hidden sm:block">Control & Inventario Deportivo Institucional</p>
+                    </div>
+                </div>
+
+                <!-- Header Actions -->
+                <div class="flex items-center space-x-3">
+                    <!-- Quick Add Button -->
+                    <button onclick="openArticleModal()" class="bg-brand-600 hover:bg-brand-500 text-white px-3.5 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition shadow-sm">
+                        <i class="fa-solid fa-plus"></i>
+                        <span class="hidden sm:inline">Nuevo Artículo</span>
+                    </button>
+                    <!-- Quick Loan Button -->
+                    <button onclick="openLoanModal()" class="bg-sport-blue hover:bg-sky-500 text-white px-3.5 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition shadow-sm">
+                        <i class="fa-solid fa-hand-holding-hand"></i>
+                        <span class="hidden sm:inline">Nuevo Préstamo</span>
+                    </button>
+                    <!-- Reset Demo Data Button -->
+                    <button onclick="resetDemoData()" title="Reiniciar datos de prueba" class="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition">
+                        <i class="fa-solid fa-rotate-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- NAVIGATION TABS -->
+        <nav class="bg-slate-800 border-t border-slate-700/60 overflow-x-auto scrollbar-none">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-1 sm:space-x-6 min-w-max">
+                <button onclick="switchTab('dashboard')" id="nav-dashboard" class="tab-btn px-3 py-3 text-sm font-medium text-slate-300 hover:text-white flex items-center gap-2 transition border-b-2 border-transparent">
+                    <i class="fa-solid fa-chart-pie"></i> Panel Principal
+                </button>
+                <button onclick="switchTab('catalog')" id="nav-catalog" class="tab-btn px-3 py-3 text-sm font-medium text-slate-300 hover:text-white flex items-center gap-2 transition border-b-2 border-transparent">
+                    <i class="fa-solid fa-boxes-stacked"></i> Catálogo de Materiales
+                </button>
+                <button onclick="switchTab('loans')" id="nav-loans" class="tab-btn px-3 py-3 text-sm font-medium text-slate-300 hover:text-white flex items-center gap-2 transition border-b-2 border-transparent relative">
+                    <i class="fa-solid fa-clipboard-list"></i> Préstamos (Check-in/out)
+                    <span id="active-loans-badge" class="bg-sport-blue text-white text-xs px-1.5 py-0.5 rounded-full ml-1 font-bold">0</span>
+                </button>
+                <button onclick="switchTab('locations')" id="nav-locations" class="tab-btn px-3 py-3 text-sm font-medium text-slate-300 hover:text-white flex items-center gap-2 transition border-b-2 border-transparent">
+                    <i class="fa-solid fa-warehouse"></i> Depósitos & Contenedores
+                </button>
+                <button onclick="switchTab('alerts')" id="nav-alerts" class="tab-btn px-3 py-3 text-sm font-medium text-slate-300 hover:text-white flex items-center gap-2 transition border-b-2 border-transparent relative">
+                    <i class="fa-solid fa-triangle-exclamation"></i> Alertas y Reposición
+                    <span id="alerts-badge" class="bg-amber-500 text-slate-900 text-xs px-1.5 py-0.5 rounded-full ml-1 font-bold">0</span>
+                </button>
+                <button onclick="switchTab('qr')" id="nav-qr" class="tab-btn px-3 py-3 text-sm font-medium text-slate-300 hover:text-white flex items-center gap-2 transition border-b-2 border-transparent">
+                    <i class="fa-solid fa-qrcode"></i> Código QR / Escáner
+                </button>
+            </div>
+        </nav>
+    </header>
+
+    <!-- MAIN CONTAINER -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        <!-- ==================== 1. DASHBOARD TAB ==================== -->
+        <section id="tab-dashboard-content" class="tab-content space-y-6">
+            <!-- Top Alert Banner if items need attention -->
+            <div id="dashboard-alert-banner" class="hidden bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-xl shadow-sm flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-bell text-amber-600 text-xl"></i>
+                    <div>
+                        <h4 class="font-semibold text-amber-800">Atención de Inventario requerida</h4>
+                        <p class="text-xs text-amber-700" id="dashboard-alert-text">Existen materiales que requieren reposición o mantenimiento.</p>
+                    </div>
+                </div>
+                <button onclick="switchTab('alerts')" class="text-xs bg-amber-600 text-white font-semibold px-3 py-1.5 rounded-lg hover:bg-amber-700 transition">
+                    Ver Alertas
+                </button>
+            </div>
+
+            <!-- KPI Cards Grid -->
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                <!-- Total Items -->
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200/80 hover:shadow-md transition">
+                    <div class="flex justify-between items-start">
+                        <span class="text-xs font-medium text-slate-500 uppercase tracking-wider">Total Unidades</span>
+                        <div class="p-2 bg-slate-100 rounded-lg text-slate-600">
+                            <i class="fa-solid fa-cubes text-lg"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2 flex items-baseline justify-between">
+                        <span class="text-2xl font-bold text-slate-800" id="kpi-total-units">0</span>
+                        <span class="text-xs text-slate-500" id="kpi-total-items-type">0 tipos</span>
+                    </div>
+                </div>
+
+                <!-- Excellent -->
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200/80 hover:shadow-md transition">
+                    <div class="flex justify-between items-start">
+                        <span class="text-xs font-medium text-slate-500 uppercase tracking-wider">🟢 Excelente</span>
+                        <div class="p-2 bg-emerald-50 rounded-lg text-emerald-600">
+                            <i class="fa-solid fa-circle-check text-lg"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <span class="text-2xl font-bold text-emerald-600" id="kpi-excellent">0</span>
+                        <p class="text-xs text-slate-500">Listos para torneo/clase</p>
+                    </div>
+                </div>
+
+                <!-- Good / Used -->
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200/80 hover:shadow-md transition">
+                    <div class="flex justify-between items-start">
+                        <span class="text-xs font-medium text-slate-500 uppercase tracking-wider">🟡 Buen Estado</span>
+                        <div class="p-2 bg-amber-50 rounded-lg text-amber-500">
+                            <i class="fa-solid fa-thumbs-up text-lg"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <span class="text-2xl font-bold text-amber-600" id="kpi-good">0</span>
+                        <p class="text-xs text-slate-500">Uso diario normal</p>
+                    </div>
+                </div>
+
+                <!-- Maintenance Needed -->
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200/80 hover:shadow-md transition">
+                    <div class="flex justify-between items-start">
+                        <span class="text-xs font-medium text-slate-500 uppercase tracking-wider">🟠 Mantenimiento</span>
+                        <div class="p-2 bg-orange-50 rounded-lg text-orange-600">
+                            <i class="fa-solid fa-screwdriver-wrench text-lg"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <span class="text-2xl font-bold text-orange-600" id="kpi-maintenance">0</span>
+                        <p class="text-xs text-slate-500">Inflar/Reparar</p>
+                    </div>
+                </div>
+
+                <!-- Out of Service -->
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200/80 hover:shadow-md transition">
+                    <div class="flex justify-between items-start">
+                        <span class="text-xs font-medium text-slate-500 uppercase tracking-wider">🔴 Fuera Servicio</span>
+                        <div class="p-2 bg-rose-50 rounded-lg text-rose-600">
+                            <i class="fa-solid fa-ban text-lg"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <span class="text-2xl font-bold text-rose-600" id="kpi-out">0</span>
+                        <p class="text-xs text-slate-500">Para dar de baja</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Condition Chart -->
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200/80 flex flex-col">
+                    <h3 class="font-bold text-slate-800 text-sm mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-chart-donut text-brand-600"></i> Estado General del Material
+                    </h3>
+                    <div class="flex-1 flex items-center justify-center min-h-[200px]">
+                        <canvas id="conditionChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Category Chart -->
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200/80 flex flex-col">
+                    <h3 class="font-bold text-slate-800 text-sm mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-chart-bar text-sport-blue"></i> Distribución por Categoría
+                    </h3>
+                    <div class="flex-1 flex items-center justify-center min-h-[200px]">
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Quick Loan Status Summary -->
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200/80 flex flex-col">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                            <i class="fa-solid fa-clock-rotate-left text-amber-500"></i> Préstamos Activos
+                        </h3>
+                        <button onclick="switchTab('loans')" class="text-xs text-brand-600 hover:underline font-semibold">Ver todos</button>
+                    </div>
+                    <div id="dashboard-recent-loans" class="flex-1 divide-y divide-slate-100 overflow-y-auto max-h-[220px]">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fast Access Categories Grid -->
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200/80">
+                <h3 class="font-bold text-slate-800 text-sm mb-4">Acceso Rápido por Categoría</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div onclick="filterByCategory('Balones y Pelotas')" class="cursor-pointer bg-slate-50 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 p-4 rounded-xl transition flex items-center space-x-4 group">
+                        <div class="p-3 bg-emerald-100 text-emerald-700 rounded-xl group-hover:scale-110 transition">
+                            <i class="fa-solid fa-basketball text-2xl"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-slate-800 group-hover:text-emerald-700">Balones y Pelotas</h4>
+                            <p class="text-xs text-slate-500" id="cat-count-balls">0 artículos</p>
+                        </div>
+                    </div>
+
+                    <div onclick="filterByCategory('Redes y Estructuras')" class="cursor-pointer bg-slate-50 hover:bg-sky-50 border border-slate-200 hover:border-sky-300 p-4 rounded-xl transition flex items-center space-x-4 group">
+                        <div class="p-3 bg-sky-100 text-sky-700 rounded-xl group-hover:scale-110 transition">
+                            <i class="fa-solid fa-network-wired text-2xl"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-slate-800 group-hover:text-sky-700">Redes y Estructuras</h4>
+                            <p class="text-xs text-slate-500" id="cat-count-nets">0 artículos</p>
+                        </div>
+                    </div>
+
+                    <div onclick="filterByCategory('Material de Entrenamiento / Psicomotricidad')" class="cursor-pointer bg-slate-50 hover:bg-purple-50 border border-slate-200 hover:border-purple-300 p-4 rounded-xl transition flex items-center space-x-4 group">
+                        <div class="p-3 bg-purple-100 text-purple-700 rounded-xl group-hover:scale-110 transition">
+                            <i class="fa-solid fa-shapes text-2xl"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-slate-800 group-hover:text-purple-700">Psicomotricidad / Entreno</h4>
+                            <p class="text-xs text-slate-500" id="cat-count-training">0 artículos</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== 2. CATALOG TAB ==================== -->
+        <section id="tab-catalog-content" class="tab-content hidden space-y-6">
+            <!-- Search & Filters Toolbar -->
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200/80 space-y-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                    <!-- Search Input -->
+                    <div class="lg:col-span-2 relative">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400"></i>
+                        <input type="text" id="filter-search" oninput="renderCatalog()" placeholder="Buscar por nombre, deporte o notas..." class="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    </div>
+                    <!-- Category Filter -->
+                    <div>
+                        <select id="filter-category" onchange="renderCatalog()" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                            <option value="">Todas las Categorías</option>
+                            <option value="Balones y Pelotas">Balones y Pelotas</option>
+                            <option value="Redes y Estructuras">Redes y Estructuras</option>
+                            <option value="Material de Entrenamiento / Psicomotricidad">Entrenamiento / Psicomotricidad</option>
+                        </select>
+                    </div>
+                    <!-- Condition Filter -->
+                    <div>
+                        <select id="filter-condition" onchange="renderCatalog()" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                            <option value="">Todos los Estados</option>
+                            <option value="Excelente">🟢 Excelente / Nuevo</option>
+                            <option value="Bueno">🟡 Usado / Buen Estado</option>
+                            <option value="Mantenimiento">🟠 Mantenimiento</option>
+                            <option value="Fuera de Servicio">🔴 Fuera de Servicio</option>
+                        </select>
+                    </div>
+                    <!-- Zone Filter -->
+                    <div>
+                        <select id="filter-zone" onchange="renderCatalog()" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                            <option value="">Todas las Zonas</option>
+                            <option value="Depósito Principal">Depósito Principal</option>
+                            <option value="Depósito Auxiliar">Depósito Auxiliar</option>
+                            <option value="Armario 1">Armario 1</option>
+                            <option value="Pañol de Deportes">Pañol de Deportes</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Active Filters Bar / Results Count -->
+                <div class="flex items-center justify-between pt-2 border-t border-slate-100 text-xs text-slate-500">
+                    <span id="catalog-count-text">Mostrando 0 artículos</span>
+                    <button onclick="clearCatalogFilters()" class="text-brand-600 hover:underline font-semibold flex items-center gap-1">
+                        <i class="fa-solid fa-xmark"></i> Limpiar filtros
+                    </button>
+                </div>
+            </div>
+
+            <!-- Items Table/Cards Grid -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200/80 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-slate-600">
+                        <thead class="bg-slate-50 text-xs text-slate-500 uppercase border-b border-slate-200">
+                            <tr>
+                                <th class="px-4 py-3.5">Artículo / Ficha</th>
+                                <th class="px-4 py-3.5">Categoría</th>
+                                <th class="px-4 py-3.5 text-center">Cant. Total</th>
+                                <th class="px-4 py-3.5 text-center">Disponible</th>
+                                <th class="px-4 py-3.5">Estado / Calidad</th>
+                                <th class="px-4 py-3.5">Ubicación / Contenedor</th>
+                                <th class="px-4 py-3.5 text-right">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="catalog-table-body" class="divide-y divide-slate-100">
+                            <!-- JS Inject -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="catalog-empty-state" class="hidden p-8 text-center text-slate-400 space-y-2">
+                    <i class="fa-solid fa-box-open text-4xl mb-2 text-slate-300"></i>
+                    <p class="font-medium text-slate-600">No se encontraron artículos con estos filtros.</p>
+                    <p class="text-xs">Prueba cambiar la búsqueda o agrega un nuevo material.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== 3. LOANS TAB ==================== -->
+        <section id="tab-loans-content" class="tab-content hidden space-y-6">
+            <!-- Header & Action -->
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm">
+                <div>
+                    <h3 class="font-bold text-slate-800 text-lg flex items-center gap-2">
+                        <i class="fa-solid fa-right-left text-sport-blue"></i> Control de Préstamos y Devoluciones
+                    </h3>
+                    <p class="text-xs text-slate-500">Registra salidas de equipamiento para clases, entrenamientos o eventos.</p>
+                </div>
+                <button onclick="openLoanModal()" class="bg-sport-blue hover:bg-sky-600 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition shadow">
+                    <i class="fa-solid fa-plus"></i> Registrar Préstamo
+                </button>
+            </div>
+
+            <!-- Active Loans Section -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200/80 overflow-hidden">
+                <div class="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                    <h4 class="font-semibold text-slate-800 text-sm flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span> Préstamos en Curso
+                    </h4>
+                    <span id="active-loans-count" class="text-xs bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full font-bold">0</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-slate-600">
+                        <thead class="bg-slate-100/50 text-xs text-slate-500 uppercase border-b border-slate-200">
+                            <tr>
+                                <th class="px-4 py-3">Profesor / Grupo</th>
+                                <th class="px-4 py-3">Material Prestado</th>
+                                <th class="px-4 py-3 text-center">Cant.</th>
+                                <th class="px-4 py-3">Fecha Salida</th>
+                                <th class="px-4 py-3">Devolución Estimada</th>
+                                <th class="px-4 py-3 text-center">Estado</th>
+                                <th class="px-4 py-3 text-right">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="active-loans-table-body" class="divide-y divide-slate-100">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Completed Loans History -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200/80 overflow-hidden">
+                <div class="p-4 bg-slate-50 border-b border-slate-200">
+                    <h4 class="font-semibold text-slate-700 text-sm">Historial de Devoluciones (Completados)</h4>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-slate-500">
+                        <thead class="bg-slate-100/50 text-xs text-slate-400 uppercase border-b border-slate-200">
+                            <tr>
+                                <th class="px-4 py-3">Profesor / Grupo</th>
+                                <th class="px-4 py-3">Material</th>
+                                <th class="px-4 py-3 text-center">Cant.</th>
+                                <th class="px-4 py-3">Fecha Devuelto</th>
+                                <th class="px-4 py-3">Observaciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-loans-table-body" class="divide-y divide-slate-100">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== 4. LOCATIONS & MAP TAB ==================== -->
+        <section id="tab-locations-content" class="tab-content hidden space-y-6">
+            <div class="bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h3 class="font-bold text-slate-800 text-lg flex items-center gap-2">
+                        <i class="fa-solid fa-map-location-dot text-brand-600"></i> Mapa de Depósitos & Armarios
+                    </h3>
+                    <p class="text-xs text-slate-500">Organización física por zonas e inspección detallada por contenedores.</p>
+                </div>
+                <!-- Zone Selector Pill Buttons -->
+                <div class="flex flex-wrap gap-2" id="zone-pills-container">
+                    <!-- JS populate -->
+                </div>
+            </div>
+
+            <!-- Zone Content Cards Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="locations-cards-grid">
+                <!-- JS populated zone cards -->
+            </div>
+        </section>
+
+        <!-- ==================== 5. ALERTS & REPOSITION TAB ==================== -->
+        <section id="tab-alerts-content" class="tab-content hidden space-y-6">
+            <div class="bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm flex justify-between items-center no-print">
+                <div>
+                    <h3 class="font-bold text-slate-800 text-lg flex items-center gap-2">
+                        <i class="fa-solid fa-triangle-exclamation text-amber-500"></i> Alertas de Stock & Mantenimiento
+                    </h3>
+                    <p class="text-xs text-slate-500">Lista automática de artículos con stock bajo, dañados o fuera de servicio.</p>
+                </div>
+                <button onclick="window.print()" class="bg-slate-800 hover:bg-slate-700 text-white px-3.5 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 shadow">
+                    <i class="fa-solid fa-print"></i> Exportar / Imprimir Reporte
+                </button>
+            </div>
+
+            <!-- Print Header Banner -->
+            <div class="hidden print-only p-4 border-b-2 border-slate-800 mb-6">
+                <h1 class="text-2xl font-bold">EduFísica Inventory - Reporte de Reposición y Mantenimiento</h1>
+                <p class="text-sm text-slate-600">Fecha de informe: <span id="print-date"></span></p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Low Stock Alert Box -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200/80 overflow-hidden">
+                    <div class="p-4 bg-amber-50 border-b border-amber-200 flex justify-between items-center">
+                        <h4 class="font-bold text-amber-800 text-sm flex items-center gap-2">
+                            <i class="fa-solid fa-layer-group"></i> Alerta de Stock Bajo (Reponer)
+                        </h4>
+                        <span id="alert-lowstock-badge" class="bg-amber-200 text-amber-800 text-xs px-2 py-0.5 rounded-full font-bold">0</span>
+                    </div>
+                    <div class="divide-y divide-slate-100" id="low-stock-list">
+                        <!-- JS Populate -->
+                    </div>
+                </div>
+
+                <!-- Maintenance / Out of Service Box -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200/80 overflow-hidden">
+                    <div class="p-4 bg-rose-50 border-b border-rose-200 flex justify-between items-center">
+                        <h4 class="font-bold text-rose-800 text-sm flex items-center gap-2">
+                            <i class="fa-solid fa-wrench"></i> Mantenimiento & Bajas
+                        </h4>
+                        <span id="alert-repair-badge" class="bg-rose-200 text-rose-800 text-xs px-2 py-0.5 rounded-full font-bold">0</span>
+                    </div>
+                    <div class="divide-y divide-slate-100" id="repair-list">
+                        <!-- JS Populate -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== 6. QR GENERATOR & SCANNER TAB ==================== -->
+        <section id="tab-qr-content" class="tab-content hidden space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- QR Generator Box -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200/80 space-y-4">
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-lg flex items-center gap-2">
+                            <i class="fa-solid fa-qrcode text-brand-600"></i> Generador de Etiquetas QR
+                        </h3>
+                        <p class="text-xs text-slate-500">Genera e imprime etiquetas QR para pegar en armarios, carros o bolsas de red.</p>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Seleccionar Tipo de Etiqueta</label>
+                            <select id="qr-target-type" onchange="updateQRTargetOptions()" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-brand-500">
+                                <option value="zone">Zona / Depósito</option>
+                                <option value="container">Contenedor Específico (Jaula, Bolsa, Armario)</option>
+                                <option value="item">Artículo / Ficha Técnica</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Seleccionar Elemento</label>
+                            <select id="qr-target-element" onchange="generateSelectedQR()" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-brand-500">
+                                <!-- JS Populated -->
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- QR Display Card -->
+                    <div class="bg-slate-50 p-6 rounded-xl border border-slate-200 flex flex-col items-center justify-center text-center space-y-3">
+                        <div id="qrcode-container" class="bg-white p-3 rounded-lg border border-slate-300 shadow-sm flex justify-center items-center">
+                            <!-- QR Generated Here -->
+                        </div>
+                        <div id="qr-label-info" class="text-xs text-slate-600 font-semibold">
+                            Cargando...
+                        </div>
+                        <button onclick="printQRLabel()" class="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 shadow">
+                            <i class="fa-solid fa-print"></i> Imprimir Etiqueta
+                        </button>
+                    </div>
+                </div>
+
+                <!-- QR Scanner Box / Simulator -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200/80 space-y-4">
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-lg flex items-center gap-2">
+                            <i class="fa-solid fa-camera text-sport-blue"></i> Escáner / Inspección Rápida
+                        </h3>
+                        <p class="text-xs text-slate-500">Escanea o simula el escaneo del código pegado en una bolsa o depósito para ver su contenido.</p>
+                    </div>
+
+                    <!-- Simulator Fast Selection -->
+                    <div class="p-3 bg-sky-50 border border-sky-200 rounded-lg text-xs text-sky-800 space-y-2">
+                        <span class="font-bold flex items-center gap-1">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> Simulación Rápida de Escaneo:
+                        </span>
+                        <div class="flex flex-wrap gap-2" id="quick-scan-pills">
+                            <!-- JS Populated simulation buttons -->
+                        </div>
+                    </div>
+
+                    <!-- Camera Scanner Container -->
+                    <div class="space-y-2">
+                        <button id="btn-toggle-camera" onclick="toggleCameraScanner()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition">
+                            <i class="fa-solid fa-camera"></i> Activar Cámera del Dispositivo
+                        </button>
+                        <div id="qr-reader" class="w-full rounded-lg overflow-hidden border border-slate-300 hidden"></div>
+                    </div>
+
+                    <!-- Scan Result Display -->
+                    <div id="scan-result-card" class="hidden bg-slate-900 text-white p-4 rounded-xl space-y-3">
+                        <div class="flex justify-between items-start border-b border-slate-700 pb-2">
+                            <div>
+                                <span class="text-[10px] uppercase font-bold tracking-wider text-brand-400" id="scan-res-type">UBICACIÓN</span>
+                                <h4 class="text-base font-bold text-white" id="scan-res-title">Jaula de Balones Principal</h4>
+                            </div>
+                            <span class="text-xs bg-brand-500/20 text-brand-400 border border-brand-500/30 px-2 py-0.5 rounded-full font-medium" id="scan-res-count">0 items</span>
+                        </div>
+                        <div class="space-y-2 max-h-[180px] overflow-y-auto text-xs" id="scan-res-items">
+                            <!-- JS Inject -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ==================== MODALS ==================== -->
+
+    <!-- ARTICLE EDIT / CREATE MODAL -->
+    <div id="modal-article" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4 overflow-y-auto">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-xl overflow-hidden transform transition-all my-8">
+            <div class="bg-slate-900 text-white px-6 py-4 flex justify-between items-center">
+                <h3 class="font-bold text-base flex items-center gap-2" id="modal-article-title">
+                    <i class="fa-solid fa-box text-brand-500"></i> Nuevo Artículo Deportivo
+                </h3>
+                <button onclick="closeArticleModal()" class="text-slate-400 hover:text-white transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <form id="form-article" onsubmit="saveArticle(event)" class="p-6 space-y-4">
+                <input type="hidden" id="art-id">
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Nombre del Material / Artículo *</label>
+                    <input type="text" id="art-name" required placeholder="Ej: Balón de Básquet #7 Spalding" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Categoría *</label>
+                        <select id="art-category" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                            <option value="Balones y Pelotas">Balones y Pelotas</option>
+                            <option value="Redes y Estructuras">Redes y Estructuras</option>
+                            <option value="Material de Entrenamiento / Psicomotricidad">Material de Entrenamiento / Psicomotricidad</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Estado de Uso / Calidad *</label>
+                        <select id="art-condition" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                            <option value="Excelente">🟢 Nuevo / Excelente (Torneo)</option>
+                            <option value="Bueno">🟡 Usado / Buen Estado (Diario)</option>
+                            <option value="Mantenimiento">🟠 Desgastado / Mantenimiento</option>
+                            <option value="Fuera de Servicio">🔴 Fuera de Servicio / Para Baja</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Cantidad Total *</label>
+                        <input type="number" id="art-quantity" min="1" required value="10" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Stock Mínimo de Alerta *</label>
+                        <input type="number" id="art-min-stock" min="1" required value="3" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Zona de Almacenamiento *</label>
+                        <select id="art-zone" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                            <option value="Depósito Principal">Depósito Principal</option>
+                            <option value="Depósito Auxiliar">Depósito Auxiliar</option>
+                            <option value="Armario 1">Armario 1</option>
+                            <option value="Pañol de Deportes">Pañol de Deportes</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Tipo de Contenedor *</label>
+                        <select id="art-container" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                            <option value="Jaula o Carro con ruedas">🛒 Jaula / Carro con ruedas</option>
+                            <option value="Bolsa de red / Transporte">🎒 Bolsa de red</option>
+                            <option value="Estantería / Caja organizadora">📦 Estantería / Caja</option>
+                            <option value="Soporte de pared / Ganchos">⚓ Soporte de pared / Ganchos</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Notas u Observaciones Técnico-Deportivas</label>
+                    <textarea id="art-notes" rows="2" placeholder="Ej: Desinflada la #3. Marca Molten. Válvulas revisadas." class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none"></textarea>
+                </div>
+
+                <div class="pt-4 flex justify-end gap-2 border-t border-slate-100">
+                    <button type="button" onclick="closeArticleModal()" class="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-100 transition">Cancelar</button>
+                    <button type="submit" class="px-5 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-sm font-semibold transition shadow">Guardar Artículo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- LOAN MODAL -->
+    <div id="modal-loan" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4 overflow-y-auto">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden transform transition-all">
+            <div class="bg-sport-blue text-white px-6 py-4 flex justify-between items-center">
+                <h3 class="font-bold text-base flex items-center gap-2">
+                    <i class="fa-solid fa-hand-holding-hand"></i> Nuevo Préstamo de Material
+                </h3>
+                <button onclick="closeLoanModal()" class="text-white/80 hover:text-white transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <form id="form-loan" onsubmit="saveLoan(event)" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Seleccionar Material a Prestar *</label>
+                    <select id="loan-article-id" required onchange="updateLoanMaxQuantity()" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-sport-blue focus:outline-none">
+                        <!-- JS Inject Options -->
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Cantidad a prestar *</label>
+                        <input type="number" id="loan-quantity" min="1" value="1" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-sport-blue focus:outline-none">
+                        <span id="loan-max-hint" class="text-[11px] text-slate-500"></span>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Fecha Dev. Estimada *</label>
+                        <input type="date" id="loan-due-date" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-sport-blue focus:outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Profesor / Grupo / Curso *</label>
+                    <input type="text" id="loan-borrower" required placeholder="Ej: Prof. Carlos / 3° B Secundaria" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-sport-blue focus:outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Notas adicionales del préstamo</label>
+                    <input type="text" id="loan-notes" placeholder="Ej: Para entrenamiento en cancha externa" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-sport-blue focus:outline-none">
+                </div>
+
+                <div class="pt-4 flex justify-end gap-2 border-t border-slate-100">
+                    <button type="button" onclick="closeLoanModal()" class="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-100 transition">Cancelar</button>
+                    <button type="submit" class="px-5 py-2 bg-sport-blue hover:bg-sky-600 text-white rounded-lg text-sm font-semibold transition shadow">Confirmar Préstamo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- PRINTABLE QR MODAL -->
+    <div id="modal-print-qr" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 text-center space-y-4">
+            <h3 class="font-bold text-slate-800 text-base">Etiqueta Lista para Imprimir</h3>
+            <div class="p-4 border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 flex flex-col items-center" id="print-modal-content">
+                <div id="modal-qrcode-target"></div>
+                <h4 class="font-bold text-slate-800 mt-3 text-sm" id="modal-qr-title">Jaula de Balones</h4>
+                <p class="text-xs text-slate-500" id="modal-qr-sub">EduFísica Inventory QR Code</p>
+            </div>
+            <div class="flex justify-center gap-2">
+                <button onclick="document.getElementById('modal-print-qr').classList.add('hidden')" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg text-xs font-bold">Cerrar</button>
+                <button onclick="window.print()" class="px-4 py-2 bg-brand-600 text-white rounded-lg text-xs font-bold flex items-center gap-1"><i class="fa-solid fa-print"></i> Imprimir</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- APP LOGIC JAVASCRIPT -->
+    <script>
+        // INITIAL DEMO DATA SETUP
+        const INITIAL_ARTICLES = [
+            {
+                id: 'ART-101',
+                name: 'Balón de Básquet Spalding #7',
+                category: 'Balones y Pelotas',
+                quantity: 12,
+                borrowed: 2,
+                condition: 'Excelente',
+                zone: 'Depósito Principal',
+                container: 'Jaula o Carro con ruedas',
+                minStock: 4,
+                notes: 'Presión regulada a 8 PSI. Calidad torneo.'
+            },
+            {
+                id: 'ART-102',
+                name: 'Pelotas de Fútbol Molten #5',
+                category: 'Balones y Pelotas',
+                quantity: 18,
+                borrowed: 5,
+                condition: 'Bueno',
+                zone: 'Depósito Principal',
+                container: 'Bolsa de red / Transporte',
+                minStock: 5,
+                notes: 'Uso diario en cancha sintética.'
+            },
+            {
+                id: 'ART-103',
+                name: 'Balones de Vóley Mikasa V200W',
+                category: 'Balones y Pelotas',
+                quantity: 10,
+                borrowed: 0,
+                condition: 'Excelente',
+                zone: 'Depósito Auxiliar',
+                container: 'Jaula o Carro con ruedas',
+                minStock: 3,
+                notes: 'Gama alta para selecciones del colegio.'
+            },
+            {
+                id: 'ART-104',
+                name: 'Pelotas de Tenis (Tubos x3)',
+                category: 'Balones y Pelotas',
+                quantity: 4,
+                borrowed: 0,
+                condition: 'Mantenimiento',
+                zone: 'Armario 1',
+                container: 'Estantería / Caja organizadora',
+                minStock: 6,
+                notes: 'Pelotas perdiendo presión. Requieren cambio.'
+            },
+            {
+                id: 'ART-201',
+                name: 'Red de Vóley Profesional con Cable de Acero',
+                category: 'Redes y Estructuras',
+                quantity: 3,
+                borrowed: 1,
+                condition: 'Bueno',
+                zone: 'Depósito Principal',
+                container: 'Soporte de pared / Ganchos',
+                minStock: 2,
+                notes: 'Largo 9.5m. Tensor en buen estado.'
+            },
+            {
+                id: 'ART-202',
+                name: 'Arcos Desmontables de Fútbol-Tenis',
+                category: 'Redes y Estructuras',
+                quantity: 4,
+                borrowed: 0,
+                condition: 'Excelente',
+                zone: 'Pañol de Deportes',
+                container: 'Soporte de pared / Ganchos',
+                minStock: 2,
+                notes: 'Estructura de aluminio liviano.'
+            },
+            {
+                id: 'ART-203',
+                name: 'Red de Arco de Fútbol 11 (Par)',
+                category: 'Redes y Estructuras',
+                quantity: 1,
+                borrowed: 0,
+                condition: 'Fuera de Servicio',
+                zone: 'Depósito Auxiliar',
+                container: 'Estantería / Caja organizadora',
+                minStock: 2,
+                notes: 'Red deshilachada en el ángulo superior derecho.'
+            },
+            {
+                id: 'ART-301',
+                name: 'Conos Lenteja / Platos Entreno (Set x50)',
+                category: 'Material de Entrenamiento / Psicomotricidad',
+                quantity: 8,
+                borrowed: 2,
+                condition: 'Bueno',
+                zone: 'Armario 1',
+                container: 'Estantería / Caja organizadora',
+                minStock: 3,
+                notes: 'Colores surtidos: Amarillo, Naranja y Azul.'
+            },
+            {
+                id: 'ART-302',
+                name: 'Colchonetas de Gimnasia Alta Densidad',
+                category: 'Material de Entrenamiento / Psicomotricidad',
+                quantity: 15,
+                borrowed: 0,
+                condition: 'Bueno',
+                zone: 'Depósito Auxiliar',
+                container: 'Soporte de pared / Ganchos',
+                minStock: 5,
+                notes: 'Medidas 100x50x4cm. Fundas lavables.'
+            },
+            {
+                id: 'ART-303',
+                name: 'Escalera de Agilidad y Coordinación 6m',
+                category: 'Material de Entrenamiento / Psicomotricidad',
+                quantity: 6,
+                borrowed: 0,
+                condition: 'Excelente',
+                zone: 'Armario 1',
+                container: 'Bolsa de red / Transporte',
+                minStock: 2,
+                notes: 'Peldaños regulables de PVC.'
+            },
+            {
+                id: 'ART-304',
+                name: 'Testimonios de Atletismo (Set x4 aluminio)',
+                category: 'Material de Entrenamiento / Psicomotricidad',
+                quantity: 2,
+                borrowed: 0,
+                condition: 'Mantenimiento',
+                zone: 'Pañol de Deportes',
+                container: 'Estantería / Caja organizadora',
+                minStock: 3,
+                notes: 'Falta 1 testimonio color rojo.'
+            }
+        ];
+
+        const INITIAL_LOANS = [
+            {
+                id: 'LOAN-501',
+                articleId: 'ART-101',
+                articleName: 'Balón de Básquet Spalding #7',
+                quantity: 2,
+                borrower: 'Prof. Mario - 4° Año A',
+                dateOut: new Date(Date.now() - 86400000 * 2).toISOString().split('T')[0],
+                dateDue: new Date(Date.now() + 86400000 * 1).toISOString().split('T')[0],
+                status: 'ACTIVE',
+                notes: 'Clase de fundamentos de pase'
+            },
+            {
+                id: 'LOAN-502',
+                articleId: 'ART-102',
+                articleName: 'Pelotas de Fútbol Molten #5',
+                quantity: 5,
+                borrower: 'Entrenador Roberto - Torneo Sub-15',
+                dateOut: new Date(Date.now() - 86400000 * 4).toISOString().split('T')[0],
+                dateDue: new Date(Date.now() - 86400000 * 1).toISOString().split('T')[0], // Overdue
+                status: 'ACTIVE',
+                notes: 'Práctica de tiro y torneo local'
+            },
+            {
+                id: 'LOAN-503',
+                articleId: 'ART-301',
+                articleName: 'Conos Lenteja / Platos Entreno (Set x50)',
+                quantity: 2,
+                borrower: 'Prof. Laura - Primaria',
+                dateOut: new Date(Date.now() - 86400000 * 1).toISOString().split('T')[0],
+                dateDue: new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0],
+                status: 'ACTIVE',
+                notes: 'Circuito psicomotriz'
+            }
+        ];
+
+        // GLOBAL APP STATE
+        let articles = [];
+        let loans = [];
+        let conditionChartInstance = null;
+        let categoryChartInstance = null;
+        let qrScannerInstance = null;
+
+        // INIT LOAD
+        window.addEventListener('DOMContentLoaded', () => {
+            loadFromLocalStorage();
+            updateAllViews();
+            document.getElementById('print-date').innerText = new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            // Default QR Target Options
+            updateQRTargetOptions();
+        });
+
+        function loadFromLocalStorage() {
+            const savedArt = localStorage.getItem('edufisica_articles');
+            const savedLoans = localStorage.getItem('edufisica_loans');
+
+            articles = savedArt ? JSON.parse(savedArt) : [...INITIAL_ARTICLES];
+            loans = savedLoans ? JSON.parse(savedLoans) : [...INITIAL_LOANS];
+        }
+
+        function saveToLocalStorage() {
+            localStorage.setItem('edufisica_articles', JSON.stringify(articles));
+            localStorage.setItem('edufisica_loans', JSON.stringify(loans));
+            updateAllViews();
+        }
+
+        function resetDemoData() {
+            if (confirm('¿Estás seguro de reiniciar los datos a la demostración original?')) {
+                articles = [...INITIAL_ARTICLES];
+                loans = [...INITIAL_LOANS];
+                saveToLocalStorage();
+            }
+        }
+
+        function updateAllViews() {
+            renderDashboardKPIs();
+            renderCharts();
+            renderCatalog();
+            renderLoans();
+            renderLocations();
+            renderAlerts();
+            updateBadges();
+        }
+
+        // TABS NAVIGATION SYSTEM
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('tab-active'));
+
+            const targetContent = document.getElementById(`tab-${tabId}-content`);
+            const targetNav = document.getElementById(`nav-${tabId}`);
+
+            if (targetContent) targetContent.classList.remove('hidden');
+            if (targetNav) targetNav.classList.add('tab-active');
+
+            // Tab specific triggers
+            if (tabId === 'qr') {
+                updateQRTargetOptions();
+                renderQuickScanPills();
+            }
+        }
+
+        // ==================== BADGES & KPIS ====================
+        function updateBadges() {
+            const activeLoansCount = loans.filter(l => l.status === 'ACTIVE').length;
+            document.getElementById('active-loans-badge').innerText = activeLoansCount;
+            document.getElementById('active-loans-count').innerText = activeLoansCount;
+
+            // Calculate Alerts Count
+            const lowStockCount = articles.filter(a => (a.quantity - (a.borrowed || 0)) <= a.minStock).length;
+            const repairCount = articles.filter(a => a.condition === 'Mantenimiento' || a.condition === 'Fuera de Servicio').length;
+            const totalAlerts = lowStockCount + repairCount;
+
+            const alertBadge = document.getElementById('alerts-badge');
+            alertBadge.innerText = totalAlerts;
+            if (totalAlerts > 0) {
+                alertBadge.classList.remove('hidden');
+                document.getElementById('dashboard-alert-banner').classList.remove('hidden');
+                document.getElementById('dashboard-alert-text').innerText = `Hay ${lowStockCount} artículos con stock bajo y ${repairCount} en mantenimiento/fuera de servicio.`;
+            } else {
+                alertBadge.classList.add('hidden');
+                document.getElementById('dashboard-alert-banner').classList.add('hidden');
+            }
+        }
+
+        function renderDashboardKPIs() {
+            let totalUnits = 0;
+            let countExc = 0;
+            let countGood = 0;
+            let countMaint = 0;
+            let countOut = 0;
+
+            let ballsCount = 0;
+            let netsCount = 0;
+            let trainingCount = 0;
+
+            articles.forEach(a => {
+                const total = parseInt(a.quantity) || 0;
+                totalUnits += total;
+
+                if (a.condition === 'Excelente') countExc += total;
+                else if (a.condition === 'Bueno') countGood += total;
+                else if (a.condition === 'Mantenimiento') countMaint += total;
+                else if (a.condition === 'Fuera de Servicio') countOut += total;
+
+                if (a.category === 'Balones y Pelotas') ballsCount += total;
+                else if (a.category === 'Redes y Estructuras') netsCount += total;
+                else if (a.category === 'Material de Entrenamiento / Psicomotricidad') trainingCount += total;
+            });
+
+            document.getElementById('kpi-total-units').innerText = totalUnits;
+            document.getElementById('kpi-total-items-type').innerText = `${articles.length} tipos`;
+            document.getElementById('kpi-excellent').innerText = countExc;
+            document.getElementById('kpi-good').innerText = countGood;
+            document.getElementById('kpi-maintenance').innerText = countMaint;
+            document.getElementById('kpi-out').innerText = countOut;
+
+            document.getElementById('cat-count-balls').innerText = `${ballsCount} unidades`;
+            document.getElementById('cat-count-nets').innerText = `${netsCount} unidades`;
+            document.getElementById('cat-count-training').innerText = `${trainingCount} unidades`;
+
+            // Recent Active Loans Dashboard Summary
+            const recentLoansContainer = document.getElementById('dashboard-recent-loans');
+            const activeLoans = loans.filter(l => l.status === 'ACTIVE');
+
+            if (activeLoans.length === 0) {
+                recentLoansContainer.innerHTML = `<div class="p-4 text-center text-xs text-slate-400">Sin préstamos activos actualmente</div>`;
+            } else {
+                recentLoansContainer.innerHTML = activeLoans.map(l => {
+                    const isOverdue = new Date(l.dateDue) < new Date();
+                    return `
+                        <div class="py-2.5 flex items-center justify-between text-xs">
+                            <div>
+                                <p class="font-semibold text-slate-800">${escapeHtml(l.borrower)}</p>
+                                <p class="text-slate-500">${l.quantity}x ${escapeHtml(l.articleName)}</p>
+                            </div>
+                            <span class="${isOverdue ? 'bg-rose-100 text-rose-700 font-bold' : 'bg-slate-100 text-slate-600'} px-2 py-0.5 rounded text-[11px]">
+                                ${isOverdue ? 'Atrasado' : 'Devuelve: ' + l.dateDue}
+                            </span>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        // ==================== CHARTS (CHART.JS) ====================
+        function renderCharts() {
+            // Condition Doughnut
+            const condCtx = document.getElementById('conditionChart')?.getContext('2d');
+            if (!condCtx) return;
+
+            let exc = 0, good = 0, maint = 0, out = 0;
+            articles.forEach(a => {
+                const q = parseInt(a.quantity) || 0;
+                if (a.condition === 'Excelente') exc += q;
+                else if (a.condition === 'Bueno') good += q;
+                else if (a.condition === 'Mantenimiento') maint += q;
+                else if (a.condition === 'Fuera de Servicio') out += q;
+            });
+
+            if (conditionChartInstance) conditionChartInstance.destroy();
+
+            conditionChartInstance = new Chart(condCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Excelente', 'Bueno', 'Mantenimiento', 'Fuera de Servicio'],
+                    datasets: [{
+                        data: [exc, good, maint, out],
+                        backgroundColor: ['#22c55e', '#eab308', '#f97316', '#ef4444'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } },
+                    cutout: '68%'
+                }
+            });
+
+            // Category Bar
+            const catCtx = document.getElementById('categoryChart')?.getContext('2d');
+            if (!catCtx) return;
+
+            let balls = 0, nets = 0, training = 0;
+            articles.forEach(a => {
+                const q = parseInt(a.quantity) || 0;
+                if (a.category === 'Balones y Pelotas') balls += q;
+                else if (a.category === 'Redes y Estructuras') nets += q;
+                else if (a.category === 'Material de Entrenamiento / Psicomotricidad') training += q;
+            });
+
+            if (categoryChartInstance) categoryChartInstance.destroy();
+
+            categoryChartInstance = new Chart(catCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Balones', 'Redes', 'Psicomotricidad'],
+                    datasets: [{
+                        label: 'Unidades',
+                        data: [balls, nets, training],
+                        backgroundColor: ['#10b981', '#0284c7', '#a855f7'],
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: '#f1f5f9' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        // ==================== CATALOG & CRUD ====================
+        function renderCatalog() {
+            const tbody = document.getElementById('catalog-table-body');
+            const emptyState = document.getElementById('catalog-empty-state');
+
+            const search = document.getElementById('filter-search')?.value.toLowerCase() || '';
+            const cat = document.getElementById('filter-category')?.value || '';
+            const cond = document.getElementById('filter-condition')?.value || '';
+            const zone = document.getElementById('filter-zone')?.value || '';
+
+            const filtered = articles.filter(item => {
+                const matchesSearch = item.name.toLowerCase().includes(search) || (item.notes && item.notes.toLowerCase().includes(search));
+                const matchesCat = !cat || item.category === cat;
+                const matchesCond = !cond || item.condition === cond;
+                const matchesZone = !zone || item.zone === zone;
+                return matchesSearch && matchesCat && matchesCond && matchesZone;
+            });
+
+            document.getElementById('catalog-count-text').innerText = `Mostrando ${filtered.length} de ${articles.length} artículos`;
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            } else {
+                emptyState.classList.add('hidden');
+            }
+
+            tbody.innerHTML = filtered.map(item => {
+                const avail = item.quantity - (item.borrowed || 0);
+                const isLowStock = avail <= item.minStock;
+
+                return `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="px-4 py-3 font-medium text-slate-800">
+                            <div class="flex items-center gap-3">
+                                <div class="p-2 bg-slate-100 rounded-lg text-slate-600">
+                                    ${getCategoryIcon(item.category)}
+                                </div>
+                                <div>
+                                    <div class="font-bold text-slate-800">${escapeHtml(item.name)}</div>
+                                    <div class="text-xs text-slate-400 font-mono">ID: ${item.id}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-4 py-3 text-xs text-slate-600 font-medium">
+                            ${escapeHtml(item.category)}
+                        </td>
+                        <td class="px-4 py-3 text-center font-bold text-slate-700">
+                            ${item.quantity}
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold ${isLowStock ? 'bg-amber-100 text-amber-800 border border-amber-300 animate-pulse' : 'bg-emerald-100 text-emerald-800'}">
+                                ${avail} disp.
+                            </span>
+                        </td>
+                        <td class="px-4 py-3">
+                            ${getConditionBadge(item.condition)}
+                        </td>
+                        <td class="px-4 py-3 text-xs text-slate-600">
+                            <div class="font-medium text-slate-700"><i class="fa-solid fa-location-dot text-slate-400 mr-1"></i>${escapeHtml(item.zone)}</div>
+                            <div class="text-[11px] text-slate-400"><i class="fa-solid fa-box-archive text-slate-300 mr-1"></i>${escapeHtml(item.container)}</div>
+                        </td>
+                        <td class="px-4 py-3 text-right space-x-1">
+                            <button onclick="editArticle('${item.id}')" title="Editar" class="p-1.5 text-slate-500 hover:text-brand-600 hover:bg-slate-100 rounded transition">
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
+                            <button onclick="duplicateArticle('${item.id}')" title="Duplicar" class="p-1.5 text-slate-500 hover:text-sport-blue hover:bg-slate-100 rounded transition">
+                                <i class="fa-solid fa-copy"></i>
+                            </button>
+                            <button onclick="deleteArticle('${item.id}')" title="Eliminar" class="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-slate-100 rounded transition">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function filterByCategory(catName) {
+            switchTab('catalog');
+            const select = document.getElementById('filter-category');
+            if (select) {
+                select.value = catName;
+                renderCatalog();
+            }
+        }
+
+        function clearCatalogFilters() {
+            document.getElementById('filter-search').value = '';
+            document.getElementById('filter-category').value = '';
+            document.getElementById('filter-condition').value = '';
+            document.getElementById('filter-zone').value = '';
+            renderCatalog();
+        }
+
+        function getCategoryIcon(cat) {
+            if (cat === 'Balones y Pelotas') return '<i class="fa-solid fa-basketball"></i>';
+            if (cat === 'Redes y Estructuras') return '<i class="fa-solid fa-network-wired"></i>';
+            return '<i class="fa-solid fa-shapes"></i>';
+        }
+
+        function getConditionBadge(cond) {
+            if (cond === 'Excelente') {
+                return `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200"><span class="w-2 h-2 rounded-full bg-emerald-500"></span>Excelente</span>`;
+            } else if (cond === 'Bueno') {
+                return `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200"><span class="w-2 h-2 rounded-full bg-amber-500"></span>Buen Estado</span>`;
+            } else if (cond === 'Mantenimiento') {
+                return `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-800 border border-orange-200"><span class="w-2 h-2 rounded-full bg-orange-500"></span>Mantenimiento</span>`;
+            } else {
+                return `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-100 text-rose-800 border border-rose-200"><span class="w-2 h-2 rounded-full bg-rose-500"></span>Fuera Servicio</span>`;
+            }
+        }
+
+        // ARTICLE MODAL ACTIONS
+        function openArticleModal(item = null) {
+            const modal = document.getElementById('modal-article');
+            const form = document.getElementById('form-article');
+
+            form.reset();
+            if (item) {
+                document.getElementById('modal-article-title').innerHTML = `<i class="fa-solid fa-pen text-brand-500"></i> Editar Material Deportivo`;
+                document.getElementById('art-id').value = item.id;
+                document.getElementById('art-name').value = item.name;
+                document.getElementById('art-category').value = item.category;
+                document.getElementById('art-condition').value = item.condition;
+                document.getElementById('art-quantity').value = item.quantity;
+                document.getElementById('art-min-stock').value = item.minStock;
+                document.getElementById('art-zone').value = item.zone;
+                document.getElementById('art-container').value = item.container;
+                document.getElementById('art-notes').value = item.notes || '';
+            } else {
+                document.getElementById('modal-article-title').innerHTML = `<i class="fa-solid fa-plus text-brand-500"></i> Nuevo Artículo Deportivo`;
+                document.getElementById('art-id').value = '';
+            }
+            modal.classList.remove('hidden');
+        }
+
+        function closeArticleModal() {
+            document.getElementById('modal-article').classList.add('hidden');
+        }
+
+        function saveArticle(e) {
+            e.preventDefault();
+            const id = document.getElementById('art-id').value;
+            const name = document.getElementById('art-name').value;
+            const category = document.getElementById('art-category').value;
+            const condition = document.getElementById('art-condition').value;
+            const quantity = parseInt(document.getElementById('art-quantity').value);
+            const minStock = parseInt(document.getElementById('art-min-stock').value);
+            const zone = document.getElementById('art-zone').value;
+            const container = document.getElementById('art-container').value;
+            const notes = document.getElementById('art-notes').value;
+
+            if (id) {
+                // Edit existing
+                const idx = articles.findIndex(a => a.id === id);
+                if (idx !== -1) {
+                    articles[idx] = { ...articles[idx], name, category, condition, quantity, minStock, zone, container, notes };
+                }
+            } else {
+                // Create new
+                const newId = 'ART-' + Math.floor(100 + Math.random() * 900);
+                articles.push({
+                    id: newId,
+                    name,
+                    category,
+                    condition,
+                    quantity,
+                    borrowed: 0,
+                    minStock,
+                    zone,
+                    container,
+                    notes
+                });
+            }
+
+            saveToLocalStorage();
+            closeArticleModal();
+        }
+
+        function editArticle(id) {
+            const item = articles.find(a => a.id === id);
+            if (item) openArticleModal(item);
+        }
+
+        function duplicateArticle(id) {
+            const item = articles.find(a => a.id === id);
+            if (item) {
+                const dup = {
+                    ...item,
+                    id: 'ART-' + Math.floor(100 + Math.random() * 900),
+                    name: item.name + ' (Copia)'
+                };
+                articles.push(dup);
+                saveToLocalStorage();
+            }
+        }
+
+        function deleteArticle(id) {
+            if (confirm('¿Eliminar este artículo del inventario?')) {
+                articles = articles.filter(a => a.id !== id);
+                saveToLocalStorage();
+            }
+        }
+
+        // ==================== LOANS SYSTEM ====================
+        function renderLoans() {
+            const activeBody = document.getElementById('active-loans-table-body');
+            const historyBody = document.getElementById('history-loans-table-body');
+
+            const activeList = loans.filter(l => l.status === 'ACTIVE');
+            const historyList = loans.filter(l => l.status === 'RETURNED');
+
+            if (activeList.length === 0) {
+                activeBody.innerHTML = `<tr><td colspan="7" class="text-center py-6 text-xs text-slate-400">No hay préstamos activos en este momento.</td></tr>`;
+            } else {
+                activeBody.innerHTML = activeList.map(loan => {
+                    const isOverdue = new Date(loan.dateDue) < new Date().setHours(0,0,0,0);
+                    return `
+                        <tr class="hover:bg-slate-50 transition">
+                            <td class="px-4 py-3 font-semibold text-slate-800">${escapeHtml(loan.borrower)}</td>
+                            <td class="px-4 py-3 text-slate-700">${escapeHtml(loan.articleName)}</td>
+                            <td class="px-4 py-3 text-center font-bold text-slate-800">${loan.quantity}</td>
+                            <td class="px-4 py-3 text-slate-500 text-xs">${loan.dateOut}</td>
+                            <td class="px-4 py-3 text-xs font-medium ${isOverdue ? 'text-rose-600 font-bold' : 'text-slate-600'}">${loan.dateDue}</td>
+                            <td class="px-4 py-3 text-center">
+                                ${isOverdue ? '<span class="bg-rose-100 text-rose-800 px-2.5 py-0.5 rounded-full text-xs font-bold border border-rose-200">Atrasado</span>' : '<span class="bg-sky-100 text-sky-800 px-2.5 py-0.5 rounded-full text-xs font-bold">En tiempo</span>'}
+                            </td>
+                            <td class="px-4 py-3 text-right">
+                                <button onclick="returnLoan('${loan.id}')" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded text-xs font-semibold shadow-sm transition">
+                                    <i class="fa-solid fa-check mr-1"></i> Registrar Devolución
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            if (historyList.length === 0) {
+                historyBody.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-xs text-slate-400">Historial de devoluciones vacío.</td></tr>`;
+            } else {
+                historyBody.innerHTML = historyList.map(loan => `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="px-4 py-3 font-medium text-slate-700">${escapeHtml(loan.borrower)}</td>
+                        <td class="px-4 py-3">${escapeHtml(loan.articleName)}</td>
+                        <td class="px-4 py-3 text-center font-semibold">${loan.quantity}</td>
+                        <td class="px-4 py-3 text-xs text-slate-500">${loan.dateReturned || 'Completado'}</td>
+                        <td class="px-4 py-3 text-xs text-slate-400">${loan.notes || '-'}</td>
+                    </tr>
+                `).join('');
+            }
+        }
+
+        function openLoanModal() {
+            const modal = document.getElementById('modal-loan');
+            const select = document.getElementById('loan-article-id');
+
+            // Populate Available Articles
+            select.innerHTML = articles.map(a => {
+                const avail = a.quantity - (a.borrowed || 0);
+                return `<option value="${a.id}" ${avail <= 0 ? 'disabled' : ''}>${escapeHtml(a.name)} (${avail} disponibles)</option>`;
+            }).join('');
+
+            updateLoanMaxQuantity();
+
+            // Default due date to tomorrow
+            const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+            document.getElementById('loan-due-date').value = tomorrow;
+
+            modal.classList.remove('hidden');
+        }
+
+        function updateLoanMaxQuantity() {
+            const artId = document.getElementById('loan-article-id').value;
+            const item = articles.find(a => a.id === artId);
+            if (item) {
+                const avail = item.quantity - (item.borrowed || 0);
+                const qtyInput = document.getElementById('loan-quantity');
+                qtyInput.max = avail;
+                if (parseInt(qtyInput.value) > avail) qtyInput.value = avail > 0 ? 1 : 0;
+                document.getElementById('loan-max-hint').innerText = `Máximo disponible: ${avail}`;
+            }
+        }
+
+        function closeLoanModal() {
+            document.getElementById('modal-loan').classList.add('hidden');
+        }
+
+        function saveLoan(e) {
+            e.preventDefault();
+            const artId = document.getElementById('loan-article-id').value;
+            const qty = parseInt(document.getElementById('loan-quantity').value);
+            const borrower = document.getElementById('loan-borrower').value;
+            const dateDue = document.getElementById('loan-due-date').value;
+            const notes = document.getElementById('loan-notes').value;
+
+            const item = articles.find(a => a.id === artId);
+            if (!item) return;
+
+            const avail = item.quantity - (item.borrowed || 0);
+            if (qty > avail) {
+                alert('No hay suficiente stock disponible para este préstamo.');
+                return;
+            }
+
+            // Deduct / Increase borrowed in article
+            item.borrowed = (item.borrowed || 0) + qty;
+
+            const newLoan = {
+                id: 'LOAN-' + Math.floor(100 + Math.random() * 900),
+                articleId: artId,
+                articleName: item.name,
+                quantity: qty,
+                borrower,
+                dateOut: new Date().toISOString().split('T')[0],
+                dateDue,
+                status: 'ACTIVE',
+                notes
+            };
+
+            loans.push(newLoan);
+            saveToLocalStorage();
+            closeLoanModal();
+        }
+
+        function returnLoan(loanId) {
+            const loan = loans.find(l => l.id === loanId);
+            if (loan) {
+                loan.status = 'RETURNED';
+                loan.dateReturned = new Date().toISOString().split('T')[0];
+
+                // Return quantity to article
+                const item = articles.find(a => a.id === loan.articleId);
+                if (item) {
+                    item.borrowed = Math.max(0, (item.borrowed || 0) - loan.quantity);
+                }
+
+                saveToLocalStorage();
+            }
+        }
+
+        // ==================== LOCATIONS & STORAGE MAP ====================
+        function renderLocations() {
+            const zones = ['Depósito Principal', 'Depósito Auxiliar', 'Armario 1', 'Pañol de Deportes'];
+            const pillsContainer = document.getElementById('zone-pills-container');
+            const cardsGrid = document.getElementById('locations-cards-grid');
+
+            // Render Zone Pills Filter
+            pillsContainer.innerHTML = zones.map(z => `
+                <button onclick="scrollToZone('${z}')" class="px-3 py-1 bg-slate-100 hover:bg-brand-100 hover:text-brand-800 text-slate-700 rounded-lg text-xs font-semibold transition border border-slate-200">
+                    <i class="fa-solid fa-warehouse text-slate-400 mr-1"></i> ${z}
+                </button>
+            `).join('');
+
+            // Render Location Cards
+            cardsGrid.innerHTML = zones.map(zone => {
+                const zoneItems = articles.filter(a => a.zone === zone);
+                const totalUnits = zoneItems.reduce((acc, curr) => acc + curr.quantity, 0);
+
+                // Group by containers inside zone
+                const containers = {};
+                zoneItems.forEach(item => {
+                    if (!containers[item.container]) containers[item.container] = [];
+                    containers[item.container].push(item);
+                });
+
+                return `
+                    <div id="zone-card-${zone.replace(/\s+/g, '-')}" class="bg-white rounded-xl shadow-sm border border-slate-200/80 overflow-hidden flex flex-col">
+                        <div class="bg-slate-900 text-white p-4 flex justify-between items-center">
+                            <div>
+                                <h4 class="font-bold text-sm text-white flex items-center gap-2">
+                                    <i class="fa-solid fa-warehouse text-brand-500"></i> ${zone}
+                                </h4>
+                                <p class="text-xs text-slate-400">${zoneItems.length} tipos de material</p>
+                            </div>
+                            <span class="bg-brand-500/20 text-brand-400 border border-brand-500/30 px-2.5 py-1 rounded-full text-xs font-bold">
+                                ${totalUnits} unids.
+                            </span>
+                        </div>
+
+                        <div class="p-4 flex-1 space-y-4 bg-slate-50/50">
+                            ${Object.keys(containers).length === 0 ? '<p class="text-xs text-slate-400 text-center py-4">Zona sin artículos asignados</p>' : ''}
+                            
+                            ${Object.keys(containers).map(cName => `
+                                <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-sm space-y-2">
+                                    <div class="flex justify-between items-center text-xs font-bold text-slate-700 border-b border-slate-100 pb-1.5">
+                                        <span class="flex items-center gap-1.5">
+                                            ${getContainerIcon(cName)} ${cName}
+                                        </span>
+                                        <button onclick="quickScanContainer('${zone}', '${cName}')" class="text-[11px] text-brand-600 hover:underline font-semibold flex items-center gap-1">
+                                            <i class="fa-solid fa-qrcode"></i> Ver QR
+                                        </button>
+                                    </div>
+                                    <ul class="space-y-1">
+                                        ${containers[cName].map(it => `
+                                            <li class="text-xs flex justify-between items-center text-slate-600">
+                                                <span class="truncate max-w-[180px]">${escapeHtml(it.name)}</span>
+                                                <span class="font-bold bg-slate-100 px-1.5 py-0.5 rounded text-[11px] text-slate-700">${it.quantity} un.</span>
+                                            </li>
+                                        `).join('')}
+                                    </ul>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function scrollToZone(zName) {
+            const card = document.getElementById(`zone-card-${zName.replace(/\s+/g, '-')}`);
+            if (card) {
+                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                card.classList.add('ring-2', 'ring-brand-500');
+                setTimeout(() => card.classList.remove('ring-2', 'ring-brand-500'), 2000);
+            }
+        }
+
+        function getContainerIcon(c) {
+            if (c.includes('Jaula')) return '<i class="fa-solid fa-cart-flatbed text-amber-600"></i>';
+            if (c.includes('Bolsa')) return '<i class="fa-solid fa-bag-shopping text-emerald-600"></i>';
+            if (c.includes('Estantería')) return '<i class="fa-solid fa-boxes-packing text-sky-600"></i>';
+            return '<i class="fa-solid fa-anchor text-purple-600"></i>';
+        }
+
+        // ==================== ALERTS & REPOSITION ====================
+        function renderAlerts() {
+            const lowStockList = document.getElementById('low-stock-list');
+            const repairList = document.getElementById('repair-list');
+
+            const lowStockItems = articles.filter(a => (a.quantity - (a.borrowed || 0)) <= a.minStock);
+            const repairItems = articles.filter(a => a.condition === 'Mantenimiento' || a.condition === 'Fuera de Servicio');
+
+            document.getElementById('alert-lowstock-badge').innerText = lowStockItems.length;
+            document.getElementById('alert-repair-badge').innerText = repairItems.length;
+
+            if (lowStockItems.length === 0) {
+                lowStockList.innerHTML = `<div class="p-6 text-center text-xs text-slate-400">🟢 No hay artículos con alerta de stock bajo. Todos los niveles están normales.</div>`;
+            } else {
+                lowStockList.innerHTML = lowStockItems.map(item => {
+                    const avail = item.quantity - (item.borrowed || 0);
+                    return `
+                        <div class="p-4 flex items-center justify-between hover:bg-slate-50 transition">
+                            <div>
+                                <h5 class="font-bold text-slate-800 text-sm">${escapeHtml(item.name)}</h5>
+                                <p class="text-xs text-slate-500">${item.zone} - ${item.container}</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-200">
+                                    Disp: ${avail} / Mín: ${item.minStock}
+                                </span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            if (repairItems.length === 0) {
+                repairList.innerHTML = `<div class="p-6 text-center text-xs text-slate-400">🟢 Excelente. No hay material catalogado en mantenimiento ni fuera de servicio.</div>`;
+            } else {
+                repairList.innerHTML = repairItems.map(item => `
+                    <div class="p-4 flex items-center justify-between hover:bg-slate-50 transition">
+                        <div>
+                            <h5 class="font-bold text-slate-800 text-sm">${escapeHtml(item.name)}</h5>
+                            <p class="text-xs text-slate-500">Notas: ${item.notes || 'Sin observaciones'}</p>
+                        </div>
+                        <div class="text-right">
+                            ${getConditionBadge(item.condition)}
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // ==================== QR GENERATOR & SCANNER SIMULATOR ====================
+        function updateQRTargetOptions() {
+            const type = document.getElementById('qr-target-type').value;
+            const select = document.getElementById('qr-target-element');
+
+            if (type === 'zone') {
+                const zones = ['Depósito Principal', 'Depósito Auxiliar', 'Armario 1', 'Pañol de Deportes'];
+                select.innerHTML = zones.map(z => `<option value="${z}">${z}</option>`).join('');
+            } else if (type === 'container') {
+                const containers = ['Jaula o Carro con ruedas', 'Bolsa de red / Transporte', 'Estantería / Caja organizadora', 'Soporte de pared / Ganchos'];
+                select.innerHTML = containers.map(c => `<option value="${c}">${c}</option>`).join('');
+            } else {
+                select.innerHTML = articles.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+            }
+
+            generateSelectedQR();
+        }
+
+        function generateSelectedQR() {
+            const type = document.getElementById('qr-target-type').value;
+            const val = document.getElementById('qr-target-element').value;
+            const container = document.getElementById('qrcode-container');
+            container.innerHTML = '';
+
+            // Use compact payload to avoid QRCode length overflow limits
+            const qrData = JSON.stringify({ t: type, id: val });
+
+            new QRCode(container, {
+                text: qrData,
+                width: 140,
+                height: 140,
+                colorDark : "#0f172a",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.M
+            });
+
+            document.getElementById('qr-label-info').innerText = `Etiqueta QR: [${type.toUpperCase()}] ${val}`;
+        }
+
+        function printQRLabel() {
+            const modal = document.getElementById('modal-print-qr');
+            const modalTarget = document.getElementById('modal-qrcode-target');
+            modalTarget.innerHTML = '';
+
+            const type = document.getElementById('qr-target-type').value;
+            const val = document.getElementById('qr-target-element').value;
+
+            new QRCode(modalTarget, {
+                text: JSON.stringify({ t: type, id: val }),
+                width: 160,
+                height: 160,
+                correctLevel : QRCode.CorrectLevel.M
+            });
+
+            document.getElementById('modal-qr-title').innerText = val;
+            document.getElementById('modal-qr-sub').innerText = `EduFísica Stock Tag (${type})`;
+
+            modal.classList.remove('hidden');
+        }
+
+        function renderQuickScanPills() {
+            const container = document.getElementById('quick-scan-pills');
+            const samples = [
+                { type: 'container', name: 'Jaula o Carro con ruedas' },
+                { type: 'container', name: 'Bolsa de red / Transporte' },
+                { type: 'zone', name: 'Depósito Principal' },
+                { type: 'zone', name: 'Armario 1' }
+            ];
+
+            container.innerHTML = samples.map(s => `
+                <button onclick="simulateScan('${s.type}', '${s.name}')" class="bg-white hover:bg-sky-100 text-sky-800 px-2.5 py-1 rounded border border-sky-300 text-xs font-semibold transition">
+                    <i class="fa-solid fa-expand text-sky-600 mr-1"></i> ${s.name}
+                </button>
+            `).join('');
+        }
+
+        function quickScanContainer(zone, containerName) {
+            switchTab('qr');
+            simulateScan('container', containerName);
+        }
+
+        function simulateScan(type, value) {
+            const card = document.getElementById('scan-result-card');
+            const title = document.getElementById('scan-res-title');
+            const typeLabel = document.getElementById('scan-res-type');
+            const countLabel = document.getElementById('scan-res-count');
+            const itemsContainer = document.getElementById('scan-res-items');
+
+            card.classList.remove('hidden');
+            typeLabel.innerText = type.toUpperCase();
+            title.innerText = value;
+
+            let matchedItems = [];
+            if (type === 'container') {
+                matchedItems = articles.filter(a => a.container === value);
+            } else if (type === 'zone') {
+                matchedItems = articles.filter(a => a.zone === value);
+            } else {
+                matchedItems = articles.filter(a => a.id === value);
+            }
+
+            countLabel.innerText = `${matchedItems.length} materiales`;
+
+            if (matchedItems.length === 0) {
+                itemsContainer.innerHTML = `<p class="text-slate-400 italic">No se encontraron artículos almacenados en este contenedor.</p>`;
+            } else {
+                itemsContainer.innerHTML = matchedItems.map(a => {
+                    const avail = a.quantity - (a.borrowed || 0);
+                    return `
+                        <div class="bg-slate-800 p-2.5 rounded-lg border border-slate-700 flex justify-between items-center">
+                            <div>
+                                <p class="font-bold text-white text-xs">${escapeHtml(a.name)}</p>
+                                <p class="text-[11px] text-slate-400">${a.zone} • ${a.condition}</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="font-extrabold text-brand-400 text-sm">${avail}</span>
+                                <span class="text-[10px] text-slate-400 block">disp. de ${a.quantity}</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        function toggleCameraScanner() {
+            const qrReaderDiv = document.getElementById('qr-reader');
+            const btn = document.getElementById('btn-toggle-camera');
+
+            if (qrScannerInstance) {
+                qrScannerInstance.stop().then(() => {
+                    qrScannerInstance = null;
+                    qrReaderDiv.classList.add('hidden');
+                    btn.innerHTML = `<i class="fa-solid fa-camera"></i> Activar Cámara del Dispositivo`;
+                });
+            } else {
+                qrReaderDiv.classList.remove('hidden');
+                qrScannerInstance = new Html5Qrcode("qr-reader");
+                qrScannerInstance.start(
+                    { facingMode: "environment" },
+                    { fps: 10, qrbox: { width: 200, height: 200 } },
+                    (decodedText) => {
+                        try {
+                            const data = JSON.parse(decodedText);
+                            const itemType = data.t || data.type;
+                            const itemId = data.id;
+                            if (itemType && itemId) {
+                                simulateScan(itemType, itemId);
+                            }
+                        } catch(e) {
+                            alert('Código QR escaneado: ' + decodedText);
+                        }
+                    },
+                    (errorMessage) => { /* scanning */ }
+                ).catch(err => {
+                    alert('No se pudo acceder a la cámara o no está disponible.');
+                    qrReaderDiv.classList.add('hidden');
+                });
+                btn.innerHTML = `<i class="fa-solid fa-stop text-rose-500"></i> Detener Cámara`;
+            }
+        }
+
+        // UTILITY FUNCTIONS
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+    </script>
+</body>
+</html>
